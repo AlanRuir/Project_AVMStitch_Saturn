@@ -38,6 +38,7 @@ add_executable(avmstitch
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_base.cpp
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cpu.cpp
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cuda.cpp
+  ${PROJECT_SOURCE_DIR}/src/common/image.cpp
   )
 
 target_include_directories(

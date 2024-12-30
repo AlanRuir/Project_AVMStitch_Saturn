@@ -11,7 +11,7 @@
 class VideoDecoderH26xBase
 {
 private:
-    using VideoDecoderCallbackType = std::function<void(uint8_t**, int*, uint32_t, uint32_t)>;
+    using VideoDecoderCallbackType = std::function<void(uint8_t**, int*, uint64_t, uint64_t)>;
 
 public:
     VideoDecoderH26xBase(uint32_t cols, uint32_t rows);

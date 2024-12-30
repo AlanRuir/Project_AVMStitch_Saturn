@@ -47,8 +47,10 @@ AvmstitchNode::AvmstitchNode()
             break;
         }
         RCLCPP_INFO(this->get_logger(), "Codec type: %s", codec_name.c_str());
+        instance->codec_type_ = codec_type;
 
         StreamInfo stream_info = instance->rtsp_client_->GetStreamInfo();
+        instance->stream_info_ = stream_info;
         RCLCPP_INFO(this->get_logger(), "Stream info: %dx%d@%d", stream_info.width, stream_info.height, stream_info.fps);
 
         // 检查GPU是否可用，如果不可用则使用CUDA加速解码
@@ -66,7 +68,7 @@ AvmstitchNode::AvmstitchNode()
             throw std::runtime_error("Failed to create video decoder");
         }
 
-        std::function<void(uint8_t**, int*, uint32_t, uint32_t)> decoded_data_callback = std::bind(&AvmstitchNode::DecodedDataHandler, this, instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+        std::function<void(uint8_t**, int*, uint64_t, uint64_t)> decoded_data_callback = std::bind(&AvmstitchNode::DecodedDataHandler, this, instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
         instance->video_decoder_->SetCallback(decoded_data_callback);
 
         std::function<void(uint8_t*, size_t)> encoded_data_callback = std::bind(&AvmstitchNode::EncodedDataHandler, this, instance, std::placeholders::_1, std::placeholders::_2);
@@ -87,17 +89,25 @@ void AvmstitchNode::EncodedDataHandler(std::shared_ptr<Instance> instance, uint8
     instance->video_decoder_->Decode(data, size, 0LU);
 }
 
-void AvmstitchNode::DecodedDataHandler(std::shared_ptr<Instance> instance, uint8_t** data, int* size, uint32_t frame_num, uint32_t time_stamp)
+void AvmstitchNode::DecodedDataHandler(std::shared_ptr<Instance> instance, uint8_t** data, int* size, uint64_t frame_num, uint64_t time_stamp)
 {
-    RCLCPP_INFO(this->get_logger(), "instance->url: %s, Decoded frame num: %d, time stamp: %d", instance->rtsp_url_.c_str(), frame_num, time_stamp);
-    (void)data;
-    (void)size;
+    RCLCPP_INFO(this->get_logger(), "instance->url: %s, Decoded frame num: %ld, time stamp: %ld", instance->rtsp_url_.c_str(), frame_num, time_stamp);
     // /*将解码后的数据写入文件*/
     // FILE* file = fopen("output.yuv", "ab+");
     // fwrite(data[0], size[0] * 1080, 1, file);
     // fwrite(data[1], size[1] * 1080 / 2, 1, file);
     // fwrite(data[2], size[2] * 1080 / 2, 1, file);
     // fclose(file);
+    {
+        std::unique_lock<std::mutex> lock(instance->image_queue_mutex_);
+        Image                        image(instance->stream_info_.width, instance->stream_info_.height, PixelFormat::YUV420P, frame_num, time_stamp);
+        memcpy(image.GetData(), data[0], size[0] * instance->stream_info_.height);
+        memcpy(image.GetData() + size[0] * instance->stream_info_.height, data[1], size[1] * instance->stream_info_.height / 2);
+        memcpy(image.GetData() + size[0] * instance->stream_info_.height + size[1] * instance->stream_info_.height / 2, data[2], size[2] * instance->stream_info_.height / 2);
+        instance->image_queue_.push(image);
+    }
+
+    avm_condition_.notify_one();
 }
 
 void AvmstitchNode::ReceiveEncodedData(std::shared_ptr<Instance> instance)
@@ -105,6 +115,80 @@ void AvmstitchNode::ReceiveEncodedData(std::shared_ptr<Instance> instance)
     while (true)
     {
         instance->rtsp_client_->ReadFrame();
+    }
+}
+
+void AvmstitchNode::AvmStitchThread()
+{
+    while (true)
+    {
+        std::unique_lock<std::mutex> lock(avm_mtx_);
+        avm_condition_.wait(lock, [this]() {
+            for (auto& instance : instances_)
+            {
+                if (instance->image_queue_.empty())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // 找到所有队列中最小的帧编号
+        uint64_t min_frame = UINT_MAX;
+        for (auto& instance : instances_)
+        {
+            if (!instance->image_queue_.empty())
+            {
+                min_frame = std::min(min_frame, instance->image_queue_.front().GetFrameCount());
+            }
+        }
+
+        // 检查是否有所有流的帧编号都等于最小帧编号
+        bool all_synced = true;
+        for (auto& instance : instances_)
+        {
+            if (instance->image_queue_.empty() || instance->image_queue_.front().GetFrameCount() != min_frame)
+            {
+                all_synced = false;
+                break;
+            }
+        }
+
+        if (all_synced)
+        {
+            // 输出当前帧
+            std::cout << "[";
+            for (auto& instance : instances_)
+            {
+                std::cout << instance->image_queue_.front().GetFrameCount();
+                // if (i < NUM_STREAMS - 1)
+                {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << "]" << std::endl;
+
+            // 移除所有队列中的当前帧
+            for (auto& instance : instances_)
+            {
+                instance->image_queue_.pop();
+                // std::cout << "frame_queues[" << i << "] size: " << frame_queues[i].size() << std::endl;
+            }
+        }
+        else
+        {
+            // 如果不同步，丢弃最小帧编号之前的帧
+            for (auto& instance : instances_)
+            {
+                while (!instance->image_queue_.empty() && instance->image_queue_.front().GetFrameCount() < min_frame)
+                {
+                    instance->image_queue_.pop();
+                    // std::cout << "frame_queues[" << i << "] size: " << frame_queues[i].size() << std::endl;
+                }
+            }
+        }
     }
 }
 
