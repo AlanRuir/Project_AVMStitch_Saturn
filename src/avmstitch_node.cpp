@@ -3,6 +3,7 @@
 
 AvmstitchNode::AvmstitchNode()
     : Node("avmstitch_node")
+    , is_running_(false)
 {
     // 检查GPU是否可用，如果可用则使用CUDA加速解码
     int         cuda_device_count = 0;
@@ -26,6 +27,7 @@ AvmstitchNode::AvmstitchNode()
         std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         instance->rtsp_client_             = std::make_shared<RtspClient>();
         instance->rtsp_url_                = std::string("rtsp://127.0.0.1:554/cam/" + std::to_string(i));
+        instance->view_id_                 = i;
         bool result                        = instance->rtsp_client_->OpenStream(instance->rtsp_url_);
         if (!result)
         {
@@ -78,10 +80,15 @@ AvmstitchNode::AvmstitchNode()
 
         instances_.push_back(instance);
     }
+
+    avm_stitch_thread_ = std::make_shared<std::thread>(&AvmstitchNode::AvmStitchThread, this);
+    RCLCPP_INFO(this->get_logger(), "AvmStitchNode started");
+    is_running_ = true;
 }
 
 AvmstitchNode::~AvmstitchNode()
 {
+    is_running_ = false;
 }
 
 void AvmstitchNode::EncodedDataHandler(std::shared_ptr<Instance> instance, uint8_t* data, size_t size)
@@ -91,19 +98,12 @@ void AvmstitchNode::EncodedDataHandler(std::shared_ptr<Instance> instance, uint8
 
 void AvmstitchNode::DecodedDataHandler(std::shared_ptr<Instance> instance, uint8_t** data, int* size, uint64_t frame_num, uint64_t time_stamp)
 {
-    RCLCPP_INFO(this->get_logger(), "instance->url: %s, Decoded frame num: %ld, time stamp: %ld", instance->rtsp_url_.c_str(), frame_num, time_stamp);
-    // /*将解码后的数据写入文件*/
-    // FILE* file = fopen("output.yuv", "ab+");
-    // fwrite(data[0], size[0] * 1080, 1, file);
-    // fwrite(data[1], size[1] * 1080 / 2, 1, file);
-    // fwrite(data[2], size[2] * 1080 / 2, 1, file);
-    // fclose(file);
     {
         std::unique_lock<std::mutex> lock(instance->image_queue_mutex_);
-        Image                        image(instance->stream_info_.width, instance->stream_info_.height, PixelFormat::YUV420P, frame_num, time_stamp);
-        memcpy(image.GetData(), data[0], size[0] * instance->stream_info_.height);
-        memcpy(image.GetData() + size[0] * instance->stream_info_.height, data[1], size[1] * instance->stream_info_.height / 2);
-        memcpy(image.GetData() + size[0] * instance->stream_info_.height + size[1] * instance->stream_info_.height / 2, data[2], size[2] * instance->stream_info_.height / 2);
+        std::shared_ptr<Image>       image = std::make_shared<Image>(instance->stream_info_.width, instance->stream_info_.height, PixelFormat::YUV420P, frame_num, time_stamp);
+        memcpy(image->GetData(), data[0], size[0] * instance->stream_info_.height);
+        memcpy(image->GetData() + size[0] * instance->stream_info_.height, data[1], size[1] * instance->stream_info_.height / 2);
+        memcpy(image->GetData() + size[0] * instance->stream_info_.height + size[1] * instance->stream_info_.height / 2, data[2], size[2] * instance->stream_info_.height / 2);
         instance->image_queue_.push(image);
     }
 
@@ -114,6 +114,11 @@ void AvmstitchNode::ReceiveEncodedData(std::shared_ptr<Instance> instance)
 {
     while (true)
     {
+        if (!is_running_)
+        {
+            continue;
+        }
+
         instance->rtsp_client_->ReadFrame();
     }
 }
@@ -141,7 +146,7 @@ void AvmstitchNode::AvmStitchThread()
         {
             if (!instance->image_queue_.empty())
             {
-                min_frame = std::min(min_frame, instance->image_queue_.front().GetFrameCount());
+                min_frame = std::min(min_frame, instance->image_queue_.front()->GetFrameCount());
             }
         }
 
@@ -149,7 +154,7 @@ void AvmstitchNode::AvmStitchThread()
         bool all_synced = true;
         for (auto& instance : instances_)
         {
-            if (instance->image_queue_.empty() || instance->image_queue_.front().GetFrameCount() != min_frame)
+            if (instance->image_queue_.empty() || instance->image_queue_.front()->GetFrameCount() != min_frame)
             {
                 all_synced = false;
                 break;
@@ -159,21 +164,43 @@ void AvmstitchNode::AvmStitchThread()
         if (all_synced)
         {
             // 输出当前帧
-            std::cout << "[";
-            for (auto& instance : instances_)
+            // RCLCPP_INFO(this->get_logger(), "[");
+            // for (auto& instance : instances_)
+            // {
+            //     RCLCPP_INFO(this->get_logger(), "%ld, ", instance->image_queue_.front()->GetFrameCount());
+
+            //     // FILE* file = fopen((std::to_string(instance->image_queue_.front()->GetFrameCount()) + "_" + std::to_string(instance->view_id_) + ".yuv420p").c_str(), "wb");
+            //     // fwrite(instance->image_queue_.front()->GetData(), instance->image_queue_.front()->GetSize(), 1, file);
+            //     // fclose(file);
+            // }
+            // RCLCPP_INFO(this->get_logger(), "]");
+            std::stringstream ss;
+            ss << "[";
+            auto it = instances_.begin();
+            while (it != instances_.end())
             {
-                std::cout << instance->image_queue_.front().GetFrameCount();
-                // if (i < NUM_STREAMS - 1)
+                ss << (*it)->image_queue_.front()->GetFrameCount();
+                ++it;
+                if (it != instances_.end())
                 {
-                    std::cout << ", ";
+                    ss << ", "; // 逗号只有在当前不是最后一个元素时才打印
                 }
             }
-            std::cout << "]" << std::endl;
+            ss << "]";
+            // 通过一次RCLCPP_INFO调用输出整个内容
+            RCLCPP_INFO(this->get_logger(), "%s", ss.str().c_str());
 
             // 移除所有队列中的当前帧
             for (auto& instance : instances_)
             {
-                instance->image_queue_.pop();
+                if (!instance->image_queue_.empty())
+                {
+                    instance->image_queue_.pop();
+                }
+                else
+                {
+                    RCLCPP_ERROR(this->get_logger(), "image_queue_ is empty");
+                }
                 // std::cout << "frame_queues[" << i << "] size: " << frame_queues[i].size() << std::endl;
             }
         }
@@ -182,7 +209,7 @@ void AvmstitchNode::AvmStitchThread()
             // 如果不同步，丢弃最小帧编号之前的帧
             for (auto& instance : instances_)
             {
-                while (!instance->image_queue_.empty() && instance->image_queue_.front().GetFrameCount() < min_frame)
+                while (!instance->image_queue_.empty() && instance->image_queue_.front()->GetFrameCount() < min_frame)
                 {
                     instance->image_queue_.pop();
                     // std::cout << "frame_queues[" << i << "] size: " << frame_queues[i].size() << std::endl;

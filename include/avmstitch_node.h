@@ -33,10 +33,11 @@ private:
         std::shared_ptr<RtspClient>           rtsp_client_;
         std::shared_ptr<VideoDecoderH26xBase> video_decoder_;
         std::string                           rtsp_url_;
-        std::queue<Image>                     image_queue_;
+        std::queue<std::shared_ptr<Image>>    image_queue_;
         std::mutex                            image_queue_mutex_;
         struct StreamInfo                     stream_info_;
         CodecType                             codec_type_;
+        int                                   view_id_;
     };
 
 public:
@@ -51,6 +52,7 @@ private:
     std::shared_ptr<std::thread>         avm_stitch_thread_;
     std::condition_variable              avm_condition_;
     std::mutex                           avm_mtx_;
+    bool                                 is_running_;
 };
 
 #endif // __AVMSTITCH_NODE_H__
