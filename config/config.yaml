@@ -1,0 +1,12 @@
+avm_stitching_node:
+  ros__parameters:
+      camera_list: ["surrounding_front", "surrounding_left", "surrounding_right", "surrounding_back"]
+
+      cam_front: "surrounding_front"
+      cam_back: "surrounding_back"
+      car_width: 1.93
+      bev_height: 1.5
+      fx: 150
+      fy: 150
+      bev_image_width: 900
+      bev_image_height: 900

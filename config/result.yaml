@@ -1,0 +1,177 @@
+%YAML:1.0
+---
+surrounding_front_in_surrounding_front_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 1., 0., 0., 0., 1., 0., 0., 0., 1. ]
+surrounding_front_in_surrounding_front_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 0., 0., 0. ]
+surrounding_front_in_car_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 6.1231391704071216e-17, -2.7112676817281078e-01,
+       9.6254364866231745e-01, -9.9998451384844833e-01,
+       -5.3568008592615101e-03, -1.5088896038483689e-03,
+       5.5652550060519730e-03, -9.6252874256549914e-01,
+       -2.7112256946258917e-01 ]
+surrounding_front_in_car_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 1.0349999999999999e+00, 0., 0. ]
+surrounding_front_in_world_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 9.9985602179401245e-01, 9.7023649366535583e-03,
+       -1.3921199549155210e-02, 1.6030084808541005e-02,
+       -2.7100605869595407e-01, 9.6244415553896734e-01,
+       5.5652550060519730e-03, -9.6252874256549914e-01,
+       -2.7112256946258922e-01 ]
+surrounding_front_in_world_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -2.2515795992548791e-02, -1.7015042354481611e+00,
+       1.4107786579505275e+00 ]
+car_height: 1.4107786579505275e+00
+surrounding_left_in_surrounding_front_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ -4.0292540406148830e-01, 6.1147660429912509e-01,
+       -6.8099007419836699e-01, 7.8110444057755996e-02,
+       7.6432211726457433e-01, 6.4008629073688061e-01,
+       9.1189356686566603e-01, 2.0471459023481881e-01,
+       -3.5572750702469447e-01 ]
+surrounding_left_in_surrounding_front_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -5.4217187458929783e-01, 1.1566119823024756e-01,
+       -4.7748935209215393e-01 ]
+surrounding_left_in_car_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 8.5655952878465058e-01, -1.0181456877910389e-02,
+       -5.1594777990031226e-01, 4.0112479548091129e-01,
+       -6.1587034797123741e-01, 6.7808746702780442e-01,
+       -3.2466085704718811e-01, -7.8778172892345655e-01,
+       -5.2344558024283194e-01 ]
+surrounding_left_in_car_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.4403680996065018e-01, 5.4226438314673797e-01,
+       1.5113587594873884e-02 ]
+surrounding_left_in_world_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 8.5655952878465058e-01, -1.0181456877910389e-02,
+       -5.1594777990031226e-01, 4.0112479548091129e-01,
+       -6.1587034797123741e-01, 6.7808746702780442e-01,
+       -3.2466085704718811e-01, -7.8778172892345655e-01,
+       -5.2344558024283194e-01 ]
+surrounding_left_in_world_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.4403680996065018e-01, 5.4226438314673797e-01,
+       1.5113587594873884e-02 ]
+surrounding_right_in_surrounding_front_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ -3.8442288807313840e-01, -5.9899689447430182e-01,
+       7.0243986471131448e-01, -1.3536259942754111e-01,
+       7.8926078571730918e-01, 5.9895273503433888e-01,
+       -9.1317906776367086e-01, 1.3516705419235248e-01,
+       -3.8449168737338857e-01 ]
+surrounding_right_in_surrounding_front_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.3381308466154631e-01, 1.2270593107498295e-01,
+       -4.8843176385213294e-01 ]
+surrounding_right_in_car_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ -8.4227428765303736e-01, -8.3885536555823259e-02,
+       -5.3248215098283869e-01, 3.8651993173275961e-01,
+       5.9455575329964949e-01, -7.0505730163695879e-01,
+       3.7573443644663679e-01, -7.9966660113764176e-01,
+       -4.6835559171755398e-01 ]
+surrounding_right_in_car_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.3159424537120070e-01, -5.3372513957757006e-01,
+       1.7287695221511412e-02 ]
+surrounding_right_in_world_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ -8.4227428765303736e-01, -8.3885536555823259e-02,
+       -5.3248215098283869e-01, 3.8651993173275961e-01,
+       5.9455575329964949e-01, -7.0505730163695879e-01,
+       3.7573443644663679e-01, -7.9966660113764176e-01,
+       -4.6835559171755398e-01 ]
+surrounding_right_in_world_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.3159424537120070e-01, -5.3372513957757006e-01,
+       1.7287695221511412e-02 ]
+surrounding_back_in_surrounding_front_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ -9.9979165829326189e-01, 2.0379053719763941e-02,
+       1.1550656676501340e-03, 1.8307356118948931e-02,
+       8.7025361167696880e-01, 4.9226364082179142e-01,
+       9.0266671115972839e-03, 4.9218222797321598e-01,
+       -8.7044538814803196e-01 ]
+surrounding_back_in_surrounding_front_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -7.5621955935821911e-03, 5.9018471645149895e-01,
+       -2.0335468092578859e+00 ]
+surrounding_back_in_car_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 3.7249467985375744e-03, 2.3779782829539500e-01,
+       -9.7130752989428748e-01, 9.9966448626297055e-01,
+       -2.5783162068443888e-02, -2.4786000773712002e-03,
+       -2.5632785177175994e-02, -9.7097241022170455e-01,
+       -2.3781408476436899e-01 ]
+surrounding_back_in_car_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -1.0823924403051810e+00, 7.4689741274930116e-03,
+       -1.6771402505873056e-02 ]
+surrounding_back_in_world_rotation: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 3.7249467985375744e-03, 2.3779782829539500e-01,
+       -9.7130752989428748e-01, 9.9966448626297055e-01,
+       -2.5783162068443888e-02, -2.4786000773712002e-03,
+       -2.5632785177175994e-02, -9.7097241022170455e-01,
+       -2.3781408476436899e-01 ]
+surrounding_back_in_world_translation: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -1.0823924403051810e+00, 7.4689741274930116e-03,
+       -1.6771402505873056e-02 ]

@@ -22,13 +22,30 @@ AvmstitchNode::AvmstitchNode()
 
     RCLCPP_INFO(this->get_logger(), "Avmstitch node started.");
 
+    avm_stitching_instance_ = std::make_shared<AVMStitchingInterface>();
+
     for (size_t i = 0; i < 4; ++i)
     {
         std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         instance->rtsp_client_             = std::make_shared<RtspClient>();
-        instance->rtsp_url_                = std::string("rtsp://127.0.0.1:554/cam/" + std::to_string(i));
-        instance->view_id_                 = i;
-        bool result                        = instance->rtsp_client_->OpenStream(instance->rtsp_url_);
+        // instance->rtsp_url_                = std::string("rtsp://127.0.0.1:554/cam/" + std::to_string(i));
+        instance->view_id_ = i;
+        switch (i)
+        {
+        case 0:
+            instance->rtsp_url_ = std::string("rtsp://58.251.252.214:5540/LAAAPLDL6R1000108/sec/forward");
+            break;
+        case 1:
+            instance->rtsp_url_ = std::string("rtsp://58.251.252.214:5540/LAAAPLDL6R1000108/sec/left");
+            break;
+        case 2:
+            instance->rtsp_url_ = std::string("rtsp://58.251.252.214:5540/LAAAPLDL6R1000108/sec/right");
+            break;
+        case 3:
+            instance->rtsp_url_ = std::string("rtsp://58.251.252.214:5540/LAAAPLDL6R1000108/sec/back");
+            break;
+        }
+        bool result = instance->rtsp_client_->OpenStream(instance->rtsp_url_);
         if (!result)
         {
             RCLCPP_ERROR(this->get_logger(), "Failed to open RTSP stream");
@@ -163,32 +180,44 @@ void AvmstitchNode::AvmStitchThread()
 
         if (all_synced)
         {
-            // 输出当前帧
-            // RCLCPP_INFO(this->get_logger(), "[");
-            // for (auto& instance : instances_)
-            // {
-            //     RCLCPP_INFO(this->get_logger(), "%ld, ", instance->image_queue_.front()->GetFrameCount());
-
-            //     // FILE* file = fopen((std::to_string(instance->image_queue_.front()->GetFrameCount()) + "_" + std::to_string(instance->view_id_) + ".yuv420p").c_str(), "wb");
-            //     // fwrite(instance->image_queue_.front()->GetData(), instance->image_queue_.front()->GetSize(), 1, file);
-            //     // fclose(file);
-            // }
-            // RCLCPP_INFO(this->get_logger(), "]");
-            std::stringstream ss;
-            ss << "[";
-            auto it = instances_.begin();
-            while (it != instances_.end())
+            std::map<std::string, cv::Mat> image_map;
+            for (auto& instance : instances_)
             {
-                ss << (*it)->image_queue_.front()->GetFrameCount();
-                ++it;
-                if (it != instances_.end())
+                switch (instance->view_id_)
                 {
-                    ss << ", "; // 逗号只有在当前不是最后一个元素时才打印
+                case 0: {
+                    cv::Mat yuvMat(720 + 720 / 2, 1280, CV_8UC1, instance->image_queue_.front()->GetData());
+                    cv::Mat bgrMat;
+                    cv::cvtColor(yuvMat, bgrMat, cv::COLOR_YUV2BGR_NV12);
+                    image_map["surrounding_front"] = bgrMat;
+                    break;
+                }
+                case 1: {
+                    cv::Mat yuvMat(720 + 720 / 2, 1280, CV_8UC1, instance->image_queue_.front()->GetData());
+                    cv::Mat bgrMat;
+                    cv::cvtColor(yuvMat, bgrMat, cv::COLOR_YUV2BGR_NV12);
+                    image_map["surrounding_left"] = bgrMat;
+                    break;
+                }
+                case 2: {
+                    cv::Mat yuvMat(720 + 720 / 2, 1280, CV_8UC1, instance->image_queue_.front()->GetData());
+                    cv::Mat bgrMat;
+                    cv::cvtColor(yuvMat, bgrMat, cv::COLOR_YUV2BGR_NV12);
+                    image_map["surrounding_right"] = bgrMat;
+                    break;
+                }
+                case 3: {
+                    cv::Mat yuvMat(720 + 720 / 2, 1280, CV_8UC1, instance->image_queue_.front()->GetData());
+                    cv::Mat bgrMat;
+                    cv::cvtColor(yuvMat, bgrMat, cv::COLOR_YUV2BGR_NV12);
+                    image_map["surrounding_back"] = bgrMat;
+                    break;
+                }
                 }
             }
-            ss << "]";
-            // 通过一次RCLCPP_INFO调用输出整个内容
-            RCLCPP_INFO(this->get_logger(), "%s", ss.str().c_str());
+
+            avm_stitching_instance_->AVMStitching(image_map);
+            RCLCPP_INFO(this->get_logger(), "stitching done");
 
             // 移除所有队列中的当前帧
             for (auto& instance : instances_)

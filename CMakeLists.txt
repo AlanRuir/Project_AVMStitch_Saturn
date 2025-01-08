@@ -10,6 +10,12 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+# append
+find_package(sensor_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED filesystem system regex)
 
 # find ffmpeg
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)  
@@ -26,11 +32,17 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include/common
   ${PROJECT_SOURCE_DIR}/include/video
   ${PROJECT_SOURCE_DIR}/include/decode
+  ${PROJECT_SOURCE_DIR}/include/stitching
   ${FFMPEG_INCLUDE_DIRS_AVCODEC} 
   ${FFMPEG_INCLUDE_DIRS_AVFORMAT} 
   ${FFMPEG_INCLUDE_DIRS_AVUTIL} 
   ${FFMPEG_INCLUDE_DIRS_SWSCALE} 
-  ${LIBYUV_INCLUDE_DIRS})
+  ${LIBYUV_INCLUDE_DIRS}
+
+# append
+  ${OpenCV_INCLUDE_DIRS}
+  ${BOOST_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR})
 
 add_executable(avmstitch 
   ${PROJECT_SOURCE_DIR}/src/video/rtsp_client.cpp
@@ -39,6 +51,8 @@ add_executable(avmstitch
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cpu.cpp
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cuda.cpp
   ${PROJECT_SOURCE_DIR}/src/common/image.cpp
+  ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching.cpp
+  ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching_interface.cpp
   )
 
 target_include_directories(
@@ -51,12 +65,14 @@ link_directories(
   /usr/local/lib
 )
 
-ament_target_dependencies(avmstitch rclcpp)
+ament_target_dependencies(avmstitch rclcpp OpenCV sensor_msgs)
 # 显式链接FFmpeg库
 target_link_libraries(
   avmstitch 
   ${FFmpeg_LIBRARIES}
-  CUDA::cudart)
+  CUDA::cudart
+  ${OpenCV_LIBS}
+  ${Boost_LIBRARIES})
 
 target_link_directories(avmstitch PRIVATE ${CUDART_LIBRARY})
 

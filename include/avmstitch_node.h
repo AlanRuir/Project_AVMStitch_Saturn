@@ -13,6 +13,7 @@
 #include "video_decoder_h26x_cpu.h"
 #include "video_decoder_h26x_cuda.h"
 #include "image.h"
+#include "avm_stitching_interface.h"
 
 class AvmstitchNode : public rclcpp::Node
 {
@@ -47,12 +48,13 @@ public:
     void AvmStitchThread();
 
 private:
-    bool                                 has_cuda_;
-    std::list<std::shared_ptr<Instance>> instances_;
-    std::shared_ptr<std::thread>         avm_stitch_thread_;
-    std::condition_variable              avm_condition_;
-    std::mutex                           avm_mtx_;
-    bool                                 is_running_;
+    bool                                   has_cuda_;
+    std::list<std::shared_ptr<Instance>>   instances_;
+    std::shared_ptr<std::thread>           avm_stitch_thread_;
+    std::condition_variable                avm_condition_;
+    std::mutex                             avm_mtx_;
+    bool                                   is_running_;
+    std::shared_ptr<AVMStitchingInterface> avm_stitching_instance_;
 };
 
 #endif // __AVMSTITCH_NODE_H__
