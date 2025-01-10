@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include "avmstitch_node.h"
+#include "image_convert.hpp"
 
 AvmstitchNode::AvmstitchNode()
     : Node("avmstitch_node")
@@ -21,6 +22,20 @@ AvmstitchNode::AvmstitchNode()
     }
 
     RCLCPP_INFO(this->get_logger(), "Avmstitch node started.");
+
+    if (!has_cuda_)
+    {
+        video_encoder_ = std::make_shared<VideoEncoderH26XCPU>(900, 900, CodecType::H264);
+    }
+    else
+    {
+        video_encoder_ = std::make_shared<VideoEncoderH26XCUDA>(900, 900, CodecType::H264);
+    }
+
+    std::function<void(uint8_t*, uint32_t, uint64_t, bool)> encode_callback = std::bind(&AvmstitchNode::EncodeHandler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+    video_encoder_->InstallCallback(encode_callback);
+
+    // avm_data_cache_buffer_ = std::make_shared<uint8_t>(new uint8_t[900 * 900 * 3 / 2], std::default_delete<uint8_t[]>());
 
     avm_stitching_instance_ = std::make_shared<AVMStitchingInterface>();
 
@@ -216,7 +231,17 @@ void AvmstitchNode::AvmStitchThread()
                 }
             }
 
-            avm_stitching_instance_->AVMStitching(image_map);
+            cv::Mat result_mat = avm_stitching_instance_->AVMStitching(image_map);
+            // if (result_mat.empty())
+            // {
+            //     RCLCPP_ERROR(this->get_logger(), "stitching failed");
+            // }
+            imshow("result_mat", result_mat);
+            cv::waitKey(33);
+            // video_encoder_->Encode(result_mat.data);
+            // cv::Mat yuv_img;
+            // cv::cvtColor(result_mat, yuv_img, cv::COLOR_BGR2YUV_I420);
+            // video_encoder_->Encode(yuv_img.data, 900 * 900 * 3 / 2, 0LU);
             RCLCPP_INFO(this->get_logger(), "stitching done");
 
             // 移除所有队列中的当前帧
@@ -246,6 +271,15 @@ void AvmstitchNode::AvmStitchThread()
             }
         }
     }
+}
+
+void AvmstitchNode::EncodeHandler(uint8_t* data, uint32_t size, uint64_t timestamp, bool is_key_frame)
+{
+    (void)timestamp;
+    (void)is_key_frame;
+    FILE* file = fopen("output.h264", "ab");
+    fwrite(data, 1, size, file);
+    fclose(file);
 }
 
 int main(int argc, char** argv)

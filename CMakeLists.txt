@@ -10,7 +10,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
-# append
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
@@ -20,6 +19,9 @@ find_package(Boost REQUIRED filesystem system regex)
 # find ffmpeg
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)  
 find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE) 
+
+# find libyuv
+find_package(libyuv REQUIRED)
 
 # find cuda
 find_package(CUDAToolkit REQUIRED)
@@ -32,7 +34,9 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include/common
   ${PROJECT_SOURCE_DIR}/include/video
   ${PROJECT_SOURCE_DIR}/include/decode
+  ${PROJECT_SOURCE_DIR}/include/encode
   ${PROJECT_SOURCE_DIR}/include/stitching
+  ${PROJECT_SOURCE_DIR}/include/image
   ${FFMPEG_INCLUDE_DIRS_AVCODEC} 
   ${FFMPEG_INCLUDE_DIRS_AVFORMAT} 
   ${FFMPEG_INCLUDE_DIRS_AVUTIL} 
@@ -50,6 +54,9 @@ add_executable(avmstitch
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_base.cpp
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cpu.cpp
   ${PROJECT_SOURCE_DIR}/src/decode/video_decoder_h26x_cuda.cpp
+  ${PROJECT_SOURCE_DIR}/src/encode/video_encoder_h26x_base.cpp
+  ${PROJECT_SOURCE_DIR}/src/encode/video_encoder_h26x_cpu.cpp
+  ${PROJECT_SOURCE_DIR}/src/encode/video_encoder_h26x_cuda.cpp
   ${PROJECT_SOURCE_DIR}/src/common/image.cpp
   ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching.cpp
   ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching_interface.cpp
@@ -72,7 +79,8 @@ target_link_libraries(
   ${FFmpeg_LIBRARIES}
   CUDA::cudart
   ${OpenCV_LIBS}
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+  ${LIBYUV_LIBRARY})
 
 target_link_directories(avmstitch PRIVATE ${CUDART_LIBRARY})
 

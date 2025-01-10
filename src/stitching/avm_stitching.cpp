@@ -385,8 +385,8 @@ cv::Mat AvmStitching::StartStitching()
 
     // path = mResultFolder + "bev_blend.jpg";
     // cv::imwrite(path, bev_blend_img);
-    imshow("bev_blend_img", bev_blend_img);
-    cv::waitKey(33);
+    // imshow("bev_blend_img", bev_blend_img);
+    // cv::waitKey(33);
     return bev_blend_img;
 }
 

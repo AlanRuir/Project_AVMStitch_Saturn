@@ -21,7 +21,7 @@ class AVMStitchingInterface
 public:
     AVMStitchingInterface();
     ~AVMStitchingInterface();
-    void AVMStitching(const std::map<std::string, cv::Mat>& image_map);
+    cv::Mat AVMStitching(const std::map<std::string, cv::Mat>& image_map);
 
 private:
     bool                                   initialized_ = true;

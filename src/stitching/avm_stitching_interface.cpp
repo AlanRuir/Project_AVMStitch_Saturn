@@ -33,7 +33,7 @@ AVMStitchingInterface::~AVMStitchingInterface()
 {
 }
 
-void AVMStitchingInterface::AVMStitching(const std::map<std::string, cv::Mat>& image_map)
+cv::Mat AVMStitchingInterface::AVMStitching(const std::map<std::string, cv::Mat>& image_map)
 {
     // cv::Mat front_image = cv::imread("/home/nyx/Apps/remotedriving-avmstitch/avm_stitching_data/surrounding_front.png");
     // stitching_->AddImage("surrounding_front", front_image);
@@ -51,7 +51,10 @@ void AVMStitchingInterface::AVMStitching(const std::map<std::string, cv::Mat>& i
 
     if (stitching_->mCount == 4)
     {
-        stitching_->StartStitching();
+        cv::Mat result_mat = stitching_->StartStitching();
         stitching_->mCount = 0;
+        return result_mat;
     }
+
+    // return cv::Mat();
 }

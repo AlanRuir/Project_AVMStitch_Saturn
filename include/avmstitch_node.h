@@ -12,6 +12,9 @@
 #include "video_decoder_h26x_base.h"
 #include "video_decoder_h26x_cpu.h"
 #include "video_decoder_h26x_cuda.h"
+#include "video_encoder_h26x_base.h"
+#include "video_encoder_h26x_cpu.h"
+#include "video_encoder_h26x_cuda.h"
 #include "image.h"
 #include "avm_stitching_interface.h"
 
@@ -46,6 +49,7 @@ public:
     void ReceiveEncodedData(std::shared_ptr<Instance> instance);
     void DecodedDataHandler(std::shared_ptr<Instance> instance, uint8_t** data, int* size, uint64_t frame_num, uint64_t time_stamp);
     void AvmStitchThread();
+    void EncodeHandler(uint8_t* data, uint32_t size, uint64_t timestamp, bool is_key_frame);
 
 private:
     bool                                   has_cuda_;
@@ -55,6 +59,8 @@ private:
     std::mutex                             avm_mtx_;
     bool                                   is_running_;
     std::shared_ptr<AVMStitchingInterface> avm_stitching_instance_;
+    std::shared_ptr<VideoEncoderH26XBase>  video_encoder_;
+    // std::shared_ptr<uint8_t>               avm_data_cache_buffer_;
 };
 
 #endif // __AVMSTITCH_NODE_H__
