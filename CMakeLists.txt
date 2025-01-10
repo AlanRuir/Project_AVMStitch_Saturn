@@ -29,6 +29,9 @@ enable_language(CUDA)
 include(CheckLanguage)
 check_language(CUDA)
 
+# find jsoncpp
+find_package(jsoncpp REQUIRED)
+
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/include/common
@@ -37,6 +40,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include/encode
   ${PROJECT_SOURCE_DIR}/include/stitching
   ${PROJECT_SOURCE_DIR}/include/image
+  ${PROJECT_SOURCE_DIR}/include/stream
   ${FFMPEG_INCLUDE_DIRS_AVCODEC} 
   ${FFMPEG_INCLUDE_DIRS_AVFORMAT} 
   ${FFMPEG_INCLUDE_DIRS_AVUTIL} 
@@ -58,6 +62,7 @@ add_executable(avmstitch
   ${PROJECT_SOURCE_DIR}/src/encode/video_encoder_h26x_cpu.cpp
   ${PROJECT_SOURCE_DIR}/src/encode/video_encoder_h26x_cuda.cpp
   ${PROJECT_SOURCE_DIR}/src/common/image.cpp
+  ${PROJECT_SOURCE_DIR}/src/stream/video_push.cpp
   ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching.cpp
   ${PROJECT_SOURCE_DIR}/src/stitching/avm_stitching_interface.cpp
   )
@@ -80,7 +85,8 @@ target_link_libraries(
   CUDA::cudart
   ${OpenCV_LIBS}
   ${Boost_LIBRARIES}
-  ${LIBYUV_LIBRARY})
+  ${LIBYUV_LIBRARY}
+  jsoncpp_lib)
 
 target_link_directories(avmstitch PRIVATE ${CUDART_LIBRARY})
 

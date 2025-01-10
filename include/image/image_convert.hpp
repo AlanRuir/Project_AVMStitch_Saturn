@@ -2,6 +2,7 @@
 #define __IMAGE_CONVERT_H__
 
 #include <libyuv.h>
+#include <opencv2/opencv.hpp>
 
 int NV12ToYUV420P(uint8_t* src_y, uint8_t* src_uv, uint8_t* dst_y, uint8_t* dst_u, uint8_t* dst_v, int width, int height)
 {
@@ -23,6 +24,15 @@ int NV12Resize(uint8_t* src_y, uint8_t* src_uv, int src_width, int src_height, u
     return libyuv::NV12Scale(src_y, src_width, src_uv, src_width,
                              src_width, src_height,
                              dst_y, dst_width, dst_uv, dst_width,
+                             dst_width, dst_height,
+                             libyuv::kFilterBox);
+}
+
+int YUV420PResize(uint8_t* src_y, uint8_t* src_u, uint8_t* src_v, int src_width, int src_height, uint8_t* dst_y, uint8_t* dst_u, uint8_t* dst_v, int dst_width, int dst_height)
+{
+    return libyuv::I420Scale(src_y, src_width, src_u, src_width / 2, src_v, src_width / 2,
+                             src_width, src_height,
+                             dst_y, dst_width, dst_u, dst_width / 2, dst_v, dst_width / 2,
                              dst_width, dst_height,
                              libyuv::kFilterBox);
 }

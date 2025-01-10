@@ -17,6 +17,7 @@
 #include "video_encoder_h26x_cuda.h"
 #include "image.h"
 #include "avm_stitching_interface.h"
+#include "video_push.h"
 
 class AvmstitchNode : public rclcpp::Node
 {
@@ -60,6 +61,7 @@ private:
     bool                                   is_running_;
     std::shared_ptr<AVMStitchingInterface> avm_stitching_instance_;
     std::shared_ptr<VideoEncoderH26XBase>  video_encoder_;
+    std::shared_ptr<VideoPush>             video_push_;
     // std::shared_ptr<uint8_t>               avm_data_cache_buffer_;
 };
 

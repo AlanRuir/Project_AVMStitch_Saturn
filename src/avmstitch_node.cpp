@@ -25,17 +25,19 @@ AvmstitchNode::AvmstitchNode()
 
     if (!has_cuda_)
     {
-        video_encoder_ = std::make_shared<VideoEncoderH26XCPU>(900, 900, CodecType::H264);
+        video_encoder_ = std::make_shared<VideoEncoderH26XCPU>(912, 912, CodecType::H264);
     }
     else
     {
-        video_encoder_ = std::make_shared<VideoEncoderH26XCUDA>(900, 900, CodecType::H264);
+        video_encoder_ = std::make_shared<VideoEncoderH26XCUDA>(912, 912, CodecType::H264);
     }
 
     std::function<void(uint8_t*, uint32_t, uint64_t, bool)> encode_callback = std::bind(&AvmstitchNode::EncodeHandler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     video_encoder_->InstallCallback(encode_callback);
 
-    // avm_data_cache_buffer_ = std::make_shared<uint8_t>(new uint8_t[900 * 900 * 3 / 2], std::default_delete<uint8_t[]>());
+    video_push_ = std::make_shared<VideoPush>(912, 912, 30, "rtsp://58.251.252.214:5540/cam/avm", CodecType::H264);
+
+    // avm_data_cache_buffer_ = std::make_shared<uint8_t>(new uint8_t[912 * 912 * 3 / 2](), std::default_delete<uint8_t[]>());
 
     avm_stitching_instance_ = std::make_shared<AVMStitchingInterface>();
 
@@ -59,6 +61,18 @@ AvmstitchNode::AvmstitchNode()
         case 3:
             instance->rtsp_url_ = std::string("rtsp://58.251.252.214:5540/LAAAPLDL6R1000108/sec/back");
             break;
+            // case 0:
+            //     instance->rtsp_url_ = std::string("rtsp://127.0.0.1:554/LAAAPLDL6R1000108/sec/forward");
+            //     break;
+            // case 1:
+            //     instance->rtsp_url_ = std::string("rtsp://127.0.0.1:554/LAAAPLDL6R1000108/sec/left");
+            //     break;
+            // case 2:
+            //     instance->rtsp_url_ = std::string("rtsp://127.0.0.1:554/LAAAPLDL6R1000108/sec/right");
+            //     break;
+            // case 3:
+            //     instance->rtsp_url_ = std::string("rtsp://127.0.0.1:554/LAAAPLDL6R1000108/sec/back");
+            //     break;
         }
         bool result = instance->rtsp_client_->OpenStream(instance->rtsp_url_);
         if (!result)
@@ -115,12 +129,14 @@ AvmstitchNode::AvmstitchNode()
 
     avm_stitch_thread_ = std::make_shared<std::thread>(&AvmstitchNode::AvmStitchThread, this);
     RCLCPP_INFO(this->get_logger(), "AvmStitchNode started");
+    video_push_->connectRtsp();
     is_running_ = true;
 }
 
 AvmstitchNode::~AvmstitchNode()
 {
     is_running_ = false;
+    video_push_->disconnectRtsp();
 }
 
 void AvmstitchNode::EncodedDataHandler(std::shared_ptr<Instance> instance, uint8_t* data, size_t size)
@@ -232,16 +248,11 @@ void AvmstitchNode::AvmStitchThread()
             }
 
             cv::Mat result_mat = avm_stitching_instance_->AVMStitching(image_map);
-            // if (result_mat.empty())
-            // {
-            //     RCLCPP_ERROR(this->get_logger(), "stitching failed");
-            // }
-            imshow("result_mat", result_mat);
-            cv::waitKey(33);
-            // video_encoder_->Encode(result_mat.data);
-            // cv::Mat yuv_img;
-            // cv::cvtColor(result_mat, yuv_img, cv::COLOR_BGR2YUV_I420);
-            // video_encoder_->Encode(yuv_img.data, 900 * 900 * 3 / 2, 0LU);
+            cv::Mat yuv_img;
+            cv::cvtColor(result_mat, yuv_img, cv::COLOR_BGR2YUV_I420);
+            cv::Mat resize_img(912 + 912 / 2, 912, CV_8UC1, cv::Scalar(0));
+            YUV420PResize(yuv_img.data, yuv_img.data + 900 * 900, yuv_img.data + 900 * 900 * 5 / 4, 900, 900, resize_img.data, resize_img.data + 912 * 912, resize_img.data + 912 * 912 * 5 / 4, 912, 912);
+            video_encoder_->Encode(resize_img.data, 912 * 912 * 3 / 2, 0LU);
             RCLCPP_INFO(this->get_logger(), "stitching done");
 
             // 移除所有队列中的当前帧
@@ -275,11 +286,20 @@ void AvmstitchNode::AvmStitchThread()
 
 void AvmstitchNode::EncodeHandler(uint8_t* data, uint32_t size, uint64_t timestamp, bool is_key_frame)
 {
-    (void)timestamp;
-    (void)is_key_frame;
-    FILE* file = fopen("output.h264", "ab");
-    fwrite(data, 1, size, file);
-    fclose(file);
+    // (void)timestamp;
+    // (void)is_key_frame;
+    // FILE* file = fopen("output.h264", "ab");
+    // fwrite(data, 1, size, file);
+    // fclose(file);
+
+    if (is_key_frame)
+    {
+        video_push_->pushFrame(data, size, timestamp, FrameType::I);
+    }
+    else
+    {
+        video_push_->pushFrame(data, size, timestamp, FrameType::P);
+    }
 }
 
 int main(int argc, char** argv)
