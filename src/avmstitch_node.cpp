@@ -36,6 +36,7 @@ AvmstitchNode::AvmstitchNode()
     video_encoder_->InstallCallback(encode_callback);
 
     video_push_ = std::make_shared<VideoPush>(912, 912, 30, "rtsp://58.251.252.214:5540/cam/avm", CodecType::H264);
+    // video_push_ = std::make_shared<VideoPush>(912, 912, 30, "rtsp://127.0.0.1:554/cam/avm", CodecType::H264);
 
     // avm_data_cache_buffer_ = std::make_shared<uint8_t>(new uint8_t[912 * 912 * 3 / 2](), std::default_delete<uint8_t[]>());
 
@@ -102,7 +103,7 @@ AvmstitchNode::AvmstitchNode()
         RCLCPP_INFO(this->get_logger(), "Stream info: %dx%d@%d", stream_info.width, stream_info.height, stream_info.fps);
 
         // 检查GPU是否可用，如果不可用则使用CUDA加速解码
-        if (!has_cuda_)
+        if (!has_cuda_) // 暂时只能用CPU解码
         {
             instance->video_decoder_ = std::make_shared<VideoDecoderH26xCPU>(stream_info.width, stream_info.height, codec_type); // 创建CPU解码器
         }
@@ -152,6 +153,9 @@ void AvmstitchNode::DecodedDataHandler(std::shared_ptr<Instance> instance, uint8
         memcpy(image->GetData(), data[0], size[0] * instance->stream_info_.height);
         memcpy(image->GetData() + size[0] * instance->stream_info_.height, data[1], size[1] * instance->stream_info_.height / 2);
         memcpy(image->GetData() + size[0] * instance->stream_info_.height + size[1] * instance->stream_info_.height / 2, data[2], size[2] * instance->stream_info_.height / 2);
+        // memcpy(image->GetData(), data[0], size[0] * instance->stream_info_.height);
+        // memcpy(image->GetData() + size[0] * instance->stream_info_.height, data[1], size[1] * instance->stream_info_.height / 2);
+        // memcpy(image->GetData() + size[0] * instance->stream_info_.height + size[1] * instance->stream_info_.height / 2, data[2], size[2] * instance->stream_info_.height / 2);
         instance->image_queue_.push(image);
     }
 

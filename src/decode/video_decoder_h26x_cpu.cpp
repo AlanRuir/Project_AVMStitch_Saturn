@@ -1,3 +1,4 @@
+#include <json/json.h>
 #include "video_decoder_h26x_cpu.h"
 
 VideoDecoderH26xCPU::VideoDecoderH26xCPU(uint32_t cols, uint32_t rows, CodecType codec)
@@ -132,6 +133,23 @@ bool VideoDecoderH26xCPU::Decode(uint8_t* packet, uint32_t packet_size, uint64_t
             break;
         }
 
+        RCLCPP_INFO(logger_, "frame nb side data counter: %d", frame_->nb_side_data);
+
+        for (int i = 0; i < frame_->nb_side_data; ++i)
+        {
+            AVFrameSideData* side_data = frame_->side_data[i];
+            if (NULL != side_data && side_data->size > 0)
+            {
+                if (AV_FRAME_DATA_SEI_UNREGISTERED == side_data->type)
+                {
+                    std::string extra_data = std::string((char*)side_data->data, side_data->size);
+                    RCLCPP_INFO(logger_, "extra_data: %s", extra_data.c_str());
+                    // image_timestamp_ = extractTimestampByJson(extra_data);
+                    break;
+                }
+            }
+        }
+
         if (callback_)
         {
             callback_(frame_->data, frame_->linesize, counter_, timestamp);
@@ -140,4 +158,53 @@ bool VideoDecoderH26xCPU::Decode(uint8_t* packet, uint32_t packet_size, uint64_t
     }
 
     return true;
+}
+
+uint64_t VideoDecoderH26xCPU::extractTimestampByJson(const std::string& str)
+{
+    std::string modifiableStr = str;
+    size_t      nullCharPos   = modifiableStr.find('\0');
+    if (nullCharPos != std::string::npos)
+    {
+        modifiableStr = modifiableStr.substr(0, nullCharPos);
+    }
+
+    size_t startIndex = modifiableStr.find('{');
+    if (startIndex != std::string::npos)
+    {
+        std::string jsonSubString = modifiableStr.substr(startIndex);
+
+        Json::CharReaderBuilder readerBuilder;
+        Json::Value             root;
+        std::string             errors;
+        std::istringstream      jsonStream(jsonSubString);
+
+        if (Json::parseFromStream(readerBuilder, jsonStream, &root, &errors))
+        {
+            if (root.isMember("timestamp") && root["timestamp"].isNumeric())
+            {
+                return root["timestamp"].asUInt64();
+            }
+            else
+            {
+                std::cerr << "JSON object does not contain 'timestamp' or it's not a number." << std::endl;
+            }
+
+            if (root.isMember("frame_index") && root["frame_index"].isString())
+            {
+                std::string frameIndex = root["frame_index"].asString();
+                std::cout << "Frame index: " << frameIndex << std::endl;
+            }
+        }
+        else
+        {
+            std::cerr << "Failed to parse JSON: " << errors << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "JSON substring not found." << std::endl;
+    }
+
+    return 0;
 }

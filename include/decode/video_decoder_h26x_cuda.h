@@ -22,6 +22,9 @@ public:
     bool Decode(uint8_t* packet, uint32_t packet_size, uint64_t timestamp) override;
 
 private:
+    uint64_t extractTimestampByJson(const std::string& str);
+
+private:
     uint32_t        counter_;       // 计数
     AVCodec*        codec_;         // 解码器
     AVCodecContext* codec_context_; // 解码上下文
